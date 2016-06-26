@@ -9,7 +9,14 @@ You need:
 - [Composer](https://getcomposer.org/)
 - [Bower](http://bower.io/)
 
+Composer might need you to install the package php5-curl from your distribution.
+
 You also need a web server with PHP (>= 5.5) and a MySQL database.
+The MySQL user and database can be created  for example using
+
+    CREATE DATABASE bebras;
+    CREATE USER 'bebras'@'localhost' IDENTIFIED BY '>>>password<<<';
+    GRANT ALL ON bebras.* TO 'bebras'@'localhost';
 
 ## Installation
 
@@ -21,11 +28,24 @@ Clone the repository:
 
 Copy `config_local_template.php` into `config_local.php`, and set the parameters for URLs and database.
 
+    $config->db->mysql->user = '…';
+    $config->db->mysql->password = '…';
+
+In the same file, change the default language to obtain an English interface.
+    
+    $config->defaultLanguage = 'en';
+
+
 Visit `dbv/index.php` with your web browser, login and passwords are those of the database.
+Click on "Run selected revisions" this will create all tables in the database.
 
 Get composer dependencies:
 
     composer install
+    
+or (depending on the installation)
+
+    php5 composer.phar install
 
 Update browser detection library (_WARNING_: run with same user as web server):
 
