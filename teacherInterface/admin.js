@@ -1900,6 +1900,16 @@ function editGroup() {
    }
 }
 
+function regradeGroup() {
+   var groupID = jQuery("#grid_group").jqGrid('getGridParam','selrow');
+   if (groupID === null) {
+      jqAlert(t("warning_no_group_selected"));
+      return;
+   }
+
+   // TODO: Do regrading
+}
+
 function printGroupCertificates() {
    var groupID = jQuery("#grid_group").jqGrid('getGridParam','selrow');
    if (groupID === null) {
