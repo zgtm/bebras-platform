@@ -140,7 +140,8 @@
             <div id="pager_group"></div> 
             <button type="button" data-i18n="groups_create" onclick="newGroup()"></button>
             <button type="button" id="buttonEditSelected_group" data-i18n="groups_edit_selected" onclick="editGroup()"></button>
-            <button type="button" id="buttonDeleteSelected_group" data-i18n="groups_delete_selected"></button><br/>
+            <button type="button" id="buttonDeleteSelected_group" data-i18n="groups_delete_selected"></button>
+            <button type="button" id="buttonRegradeSelected_group" data-i18n="groups_regrade_selected" onclick="regradeGroup()"></button><br/>
             <span data-i18n="[html]group_print_certificates_help"></span>
             <!--<button type="button"" id="buttonGradeGroup" data-i18n="group_grade" onclick="gradeGroup()"></button>
             <div id="gradeGroupState"></div>-->
