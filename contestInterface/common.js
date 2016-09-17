@@ -3,9 +3,12 @@
 
 var contestID;
 var contestFolder;
-var contestStatus;
+var contestVisibility;
+var contestShowSolutions;
+var contestOpen;
 var fullFeedback;
 var nextQuestionAuto;
+var nbUnlockedTasksInitial;
 var newInterface;
 var solutionsLoaded;
 var teamID = 0;
@@ -87,6 +90,10 @@ window.onerror = function () {
 
 window.logError = logError;
 
+var updateContestName = function(contestName) {
+  $('#headerH1').html(contestName);
+  $('title').html(contestName);
+};
 
 /**
  * Old IE versions does not implement the Array.indexOf function
@@ -986,10 +993,7 @@ function updateUnlockedLevels(sortedQuestionIDs, updatedQuestionKey, contestEnde
       return;
    }
    var epsilon = 0.001;
-   var nbTasksUnlocked = [5, 0, 0];
-   if (sortedQuestionIDs.length <= 10) {
-      nbTasksUnlocked[0] = 4;
-   }
+   var nbTasksUnlocked = [nbUnlockedTasksInitial, 0, 0];
    var prevQuestionUnlockedLevels = {};
    var iQuestionID, questionKey;
    for (iQuestionID = 0; iQuestionID < sortedQuestionIDs.length; iQuestionID++) {
@@ -1296,6 +1300,31 @@ window.setNbContestants = function(nb) {
    $("#divCheckNbContestants").hide();
 };
 
+var fieldsHidden = {};
+
+var hideLoginFields = function(postData) {
+   var contestFieldMapping = {
+      askEmail: 'email',
+      askGrade: 'grade',
+      askStudentId: 'studentId',
+      askZip: 'zipCode',
+      askGenre: 'genre'
+   }
+   for (var contestFieldName in contestFieldMapping) {
+      var loginFieldName = contestFieldMapping[contestFieldName];
+      if (postData[contestFieldName]) {
+         fieldsHidden[loginFieldName] = false;
+         $('#login-input-'+loginFieldName+'-1').show();
+         $('#login-input-'+loginFieldName+'-2').show();
+      } else {
+         fieldsHidden[loginFieldName] = true;
+         console.error('hiding login-input-'+loginFieldName+'-1');
+         $('#login-input-'+loginFieldName+'-1').hide();
+         $('#login-input-'+loginFieldName+'-2').hide();
+      }
+   }
+}
+
 /*
  * Checks if a group is valid and loads information about the group and corresponding contest,
  * curStep: indicates which step of the login process the students are currently at :
@@ -1337,10 +1366,11 @@ window.checkGroupFromCode = function(curStep, groupCode, getTeams, isPublic) {
                }
             }
             $("#div" + curStep).hide();
+            hideLoginFields(data);
             if (curStep === "CheckGroup") {
                if (isPublic) {
                   window.setNbContestants(1);
-                  createTeam([{ lastName: "Anonymous", firstName: "Anonymous", genre: 2}]);
+                  createTeam([{ lastName: "Anonymous", firstName: "Anonymous", genre: 2, email: null, zipCode: null}]);
                } else if (data.allowTeamsOfTwo == 1) {
                   $("#divCheckNbContestants").show();
                } else {
@@ -1362,22 +1392,34 @@ window.validateLoginForm = function() {
    var contestants = {};
    for (var iContestant = 1; iContestant <= nbContestants; iContestant++) {
       var contestant = {
-         "lastName" : $("#lastName" + iContestant).val(),
-         "firstName" : $("#firstName" + iContestant).val(),
+         "lastName" : $.trim($("#lastName" + iContestant).val()),
+         "firstName" : $.trim($("#firstName" + iContestant).val()),
          "genre" : $("input[name='genre" + iContestant + "']:checked").val(),
-         "grade" : $("#grade" + iContestant).val()
+         "grade" : $("#grade" + iContestant).val(),
+         "email" : $.trim($("#email" + iContestant).val()),
+         "zipCode" : $.trim($("#zipCode" + iContestant).val()),
+         "studentId" : $.trim($("#studentId" + iContestant).val())
       };
       contestants[iContestant] = contestant;
-      if ($.trim(contestant.lastName) === "") {
+      if (!contestant.lastName && !fieldsHidden.lastName) {
          $("#LoginResult").html(t("lastname_missing"));
          return;
-      } else if ($.trim(contestant.firstName) === "") {
+      } else if (!contestant.firstName && !fieldsHidden.firstName) {
          $("#LoginResult").html(t("firstname_missing"));
          return;
-      } else if ($.trim(contestant.genre) === "") {
+      } else if (!contestant.genre && !fieldsHidden.genre) {
          $("#LoginResult").html(t("genre_missing"));
          return;
-      } else if (contestant.grade === "") {
+      } else if (!contestant.email && !fieldsHidden.email) {
+         $("#LoginResult").html(t("email_missing"));
+         return;
+      } else if (!contestant.zipCode === "" && !fieldsHidden.zipCode) {
+         $("#LoginResult").html(t("zipCode_missing"));
+         return;
+      } else if (!contestant.studentId && !fieldsHidden.studentId) {
+         $("#LoginResult").html(t("studentId_missing"));
+         return;
+      } else if (!contestant.grade && !fieldsHidden.grade) {
          $("#LoginResult").html(t("grade_missing"));
          return;
       }
@@ -1494,10 +1536,14 @@ function getPublicGroupsList(groups) {
 function initContestData(data) {
    contestID = data.contestID;
    contestFolder = data.contestFolder;
+   updateContestName(data.contestName);
    fullFeedback = parseInt(data.fullFeedback);
    nextQuestionAuto = parseInt(data.nextQuestionAuto);
+   nbUnlockedTasksInitial = parseInt(data.nbUnlockedTasksInitial);
    newInterface = !!parseInt(data.newInterface);
-   contestStatus = data.contestStatus;
+   contestOpen = data.contestOpen;
+   contestVisibility = data.contestVisibility;
+   contestShowSolutions = data.contestShowSolutions;
    TimeManager.setTotalTime(data.nbMinutes * 60);
    if (newInterface) {
       $("#question-iframe-container").addClass("newInterfaceIframeContainer");
@@ -1654,7 +1700,7 @@ function finalCloseContest(message) {
       function() {}, "json"
    ).always(function() {
       window.onbeforeunload = function(){};
-      if (contestStatus === "RunningContest") {
+      if (!contestShowSolutions) {
          $("#divClosedPleaseWait").hide();
          $("#divClosedMessage").html(message);
          var listAnswers = [];

@@ -242,6 +242,7 @@
    global $config;
    $language = $config->defaultLanguage;
    $countryCode = $config->teacherInterface->countryCode;
+   $domainCountryCode = $config->teacherInterface->domainCountryCode;
    // JSON3 shim for IE6-9 compatibility.
    script_tag('/bower_components/json3/lib/json3.min.js');
    // jquery 1.9 is required for IE6+ compatibility.
@@ -254,7 +255,6 @@
    script_tag('/bower_components/jqgrid/js/minified/jquery.jqGrid.min.js');
    script_tag('/bower_components/jqgrid/js/i18n/grid.locale-' . $language . '.js');
    script_tag('/regions/' . strtoupper($countryCode) . '/regions.js');
-   script_tag('/config.js.php');
    script_tag('/admin.js');
 ?>
 <script>
@@ -262,6 +262,7 @@
       'defaultLanguage' => $language,
       'maintenanceUntil' => $config->maintenanceUntil,
       'countryCode' => $countryCode,
+      'domainCountryCode' => $domainCountryCode,
       'infoEmail' => $config->email->sInfoAddress,
       'forceOfficialEmailDomain' => $config->teacherInterface->forceOfficialEmailDomain,
       'contestPresentationURL' => $config->contestPresentationURL,
@@ -269,7 +270,7 @@
       'i18nResourcePath' => static_asset('/i18n/__lng__/__ns__.json'),
       'customStringsName' => $config->customStringsName,
       'allowCertificates' => $config->certificates->allow,
-      'useAlgoreaCodes' => $config->teacherInterface->useAlgoreaCodes
+      'useAlgoreaCodes' => $config->teacherInterface->useAlgoreaCodes,
    ]) ?>;
    init();
 </script>

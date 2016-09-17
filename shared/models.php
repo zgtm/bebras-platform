@@ -28,7 +28,10 @@ $tablesModels = array (
          "firstName" => array("type" => "string", "access" => array("write" => array("user"), "read" => array("user"))),
          "lastName" => array("type" => "string", "access" => array("write" => array("user"), "read" => array("user"))),
          "genre" => array("type" => "int", "access" => array("write" => array("user"), "read" => array("user"))),
+         "email" => array("type" => "string", "access" => array("write" => array("user"), "read" => array("user"))),
+         "zipCode" => array("type" => "string", "access" => array("write" => array("user"), "read" => array("user"))),
          "grade" => array("type" => "int", "access" => array("write" => array("user"), "read" => array("user"))),
+         "studentId" => array("type" => "string", "access" => array("write" => array("user"), "read" => array("user"))),
          "teamID" => array("type" => "int"),
          "userID" => array("type" => "int"),
          "cached_schoolID" => array("type" => "int"),
@@ -49,13 +52,19 @@ $tablesModels = array (
          "level" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "year" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "category" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
-         "status" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "status" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "open" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "visibility" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "closedToOfficialGroups" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "showSolutions" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "nbMinutes" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "bonusScore" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "allowTeamsOfTwo" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "newInterface" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "fullFeedback" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "nextQuestionAuto" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "nbUnlockedTasksInitial" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "subsetsSize" =>  array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "folder" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "minAward1Rank" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "minAward2Rank" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
@@ -64,7 +73,14 @@ $tablesModels = array (
          "printCertificates" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "showResults" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "printCodes" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "askEmail" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "askZip" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "askGrade" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "askStudentId" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "askGenre" => array("type" => "int", "access" => array("write" => array("admin"), "read" => array("admin"))),
          "certificateStringsName" => array("type" => "string", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "startDate" => array("type" => "date", "access" => array("write" => array("admin"), "read" => array("admin"))),
+         "endDate" => array("type" => "date", "access" => array("write" => array("admin"), "read" => array("admin"))),
       )
    ),
    "contest_question" => array(
@@ -326,9 +342,12 @@ $viewsModels = array(
          "lastName" => array(),
          "genre" => array(),
          "grade" => array(),
+         "studentId" => array(),
          "score" => array("tableName" => "team"),
          "nbContestants" => array("tableName" => "team"),
          "rank" => array(),
+         "email" => array(),
+         "zipCode" => array(),
          "level" => array("tableName" => "contest"),
          "algoreaCode" => array(),
          "schoolRank" => array(),
@@ -370,10 +389,13 @@ $viewsModels = array(
          "lastName" => array(),
          "genre" => array(),
          "grade" => array("tableName" => "grade", "fieldName" => "name"),
+         "studentId" => array(),
          "score" => array("tableName" => "team"),
          "nbContestants" => array("tableName" => "team"),
          "rank" => array(),
-         "qualificationCode" => array("fieldName" => "algoreaCode")
+         "qualificationCode" => array("fieldName" => "algoreaCode"),
+         "email" => array(),
+         "zipCode" => array(),
       ),
       "filters" => array(
          "groupField" => $fieldGroupFilter,
@@ -441,14 +463,13 @@ $viewsModels = array(
       "filters" => array(
          "statusNotHidden" => array(
             "joins" => array("contest"),
-            "condition" => "(`[PREFIX]contest`.`status` <> 'Hidden')",
+            "condition" => "(`[PREFIX]contest`.`visibility` <> 'Hidden')",
             "ignoreValue" => true
          ),
          "checkOfficial" => array(
             "joins" => array("contest"),
-            "condition" => "((`[PREFIX]contest`.`status` = 'FutureContest') OR ".
-                            "(`[PREFIX]contest`.`status` = 'RunningContest') OR ".
-                            "(`[PREFIX]contest`.`status` = 'PreRanking') OR ".
+            "condition" => "((`[PREFIX]contest`.`closedToOfficialGroups` = 1) OR ".
+            // "condition" => "((`[PREFIX]contest`.`status` = 'Open') OR ".
                             "(`[PREFIX]group`.`participationType` = 'Unofficial'))",
             "ignoreValue" => true
          ),
@@ -570,13 +591,26 @@ $viewsModels = array(
          "level" => array(),
          "year" => array(),
          "status" => array(),
+         "open" => array(),
+         "visibility" => array(),
+         "closedToOfficialGroups" => array(),
+         "showSolutions" => array(),
+         "startDate" => array(),
+         "endDate" => array(),
          "nbMinutes" =>  array(),
          "bonusScore" =>  array(),
          "allowTeamsOfTwo" =>  array(),
          "newInterface" =>  array(),
          "fullFeedback" =>  array(),
          "nextQuestionAuto" =>  array(),
+         "nbUnlockedTasksInitial" =>  array(),
+         "subsetsSize" =>  array(),
          "folder" => array(),
+         "askEmail" => array(),
+         "askZip" => array(),
+         "askGrade" => array(),
+         "askStudentId" => array(),
+         "askGenre" => array(),
          "minAward1Rank" => array(),
          "minAward2Rank" => array(),
          "rankGrades" => array(),
@@ -594,7 +628,7 @@ $viewsModels = array(
       "filters" => array(
          "statusNotHidden" => array(
             "joins" => array(),
-            "condition" => "(`[PREFIX]contest`.`status` <> 'Hidden')",
+            "condition" => "(`[PREFIX]contest`.`visibility` <> 'Hidden')",
             "ignoreValue" => true
           )
       )

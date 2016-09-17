@@ -8,7 +8,7 @@ include_once("common_contest.php");
 function loadPublicGroups($db) {
    restartSession();
    $stmt = $db->prepare("SELECT `group`.`name`, `group`.`code`, `contest`.`year`, `contest`.`category`, `contest`.`level` ".
-      "FROM `group` JOIN `contest` ON (`group`.`contestID` = `contest`.`ID`) WHERE `isPublic` = 1 AND `contest`.`status` <> 'Hidden' and `contest`.`status` <> 'RunningContest';");
+      "FROM `group` JOIN `contest` ON (`group`.`contestID` = `contest`.`ID`) WHERE `isPublic` = 1 AND `contest`.`visibility` <> 'Hidden';");
    $stmt->execute(array());
    $groups = array();
    while ($row = $stmt->fetchObject()) {
@@ -37,26 +37,24 @@ function getGroupTeams($db, $groupID) {
 }
 
 function openGroup($db, $password, $getTeams) {
-   $query = "SELECT `group`.`ID`, `group`.`name`, `group`.`bRecovered`, `group`.`contestID`, `group`.`isPublic`, `group`.`schoolID`, `group`.`startTime`, TIMESTAMPDIFF(MINUTE, `group`.`startTime`, NOW()) as `nbMinutesElapsed`,  `contest`.`nbMinutes`, `contest`.`bonusScore`, `contest`.`allowTeamsOfTwo`, `contest`.`newInterface`, `contest`.`fullFeedback`, `contest`.`nextQuestionAuto`, `contest`.`folder`, `contest`.`status` FROM `group` JOIN `contest` ON (`group`.`contestID` = `contest`.`ID`) WHERE `code` = ?";
+   $query = "SELECT `group`.`ID`, `group`.`name`, `group`.`bRecovered`, `group`.`contestID`, `group`.`isPublic`, `group`.`schoolID`, `group`.`startTime`, TIMESTAMPDIFF(MINUTE, `group`.`startTime`, NOW()) as `nbMinutesElapsed`,  `contest`.`nbMinutes`, `contest`.`bonusScore`, `contest`.`allowTeamsOfTwo`, `contest`.`newInterface`, `contest`.`fullFeedback`, `contest`.`nextQuestionAuto`, `contest`.`folder`, `contest`.`nbUnlockedTasksInitial`, `contest`.`subsetsSize`, `contest`.`open`, `contest`.`showSolutions`, `contest`.`visibility`, `contest`.`askEmail`, `contest`.`askZip`, `contest`.`askGenre`, `contest`.`askGrade`, `contest`.`askStudentId`, `contest`.`name` as `contestName` FROM `group` JOIN `contest` ON (`group`.`contestID` = `contest`.`ID`) WHERE `code` = ?";
    $stmt = $db->prepare($query);
    $stmt->execute(array($password));
    $row = $stmt->fetchObject();
    if (!$row) {
       return false;
    }
-   if ($row->status == "FutureContest") {
-      echo json_encode((object)array("success" => false, "message" => "Le concours de ce groupe n'est pas encore ouvert."));
-      return true;
-   }
-   if ($row->status == "Closed" || $row->status == 'PreRanking') {
-      echo json_encode((object)array("success" => false, "message" => "Le concours de ce groupe n'est pas disponible actuellement."));
+   if ($row->open != "Open") {
+      echo json_encode((object)array("success" => false, "message" => "Le concours de ce groupe n'est pas ouvert."));
       return true;
    }
    $groupID = $row->ID;
    $schoolID = $row->schoolID;
    $contestID = $row->contestID;
    $contestFolder = $row->folder;
-   $contestStatus = $row->status;
+   $contestOpen = $row->open;
+   $contestShowSolutions = $row->showSolutions;
+   $contestVisibility = $row->visibility;
    $name = $row->name;
    $nbMinutes = $row->nbMinutes;
    $bonusScore = $row->bonusScore;
@@ -64,6 +62,8 @@ function openGroup($db, $password, $getTeams) {
    $newInterface = $row->newInterface;
    $fullFeedback = $row->fullFeedback;
    $nextQuestionAuto = $row->nextQuestionAuto;
+   $nbUnlockedTasksInitial = $row->nbUnlockedTasksInitial;
+   $subsetsSize = $row->subsetsSize;
    $isPublic = $row->isPublic;
    if ($row->startTime === null) {
       $nbMinutesElapsed = 0;
@@ -76,16 +76,21 @@ function openGroup($db, $password, $getTeams) {
       $teams = "";
    }
    $_SESSION["groupID"] = $groupID;
+   $_SESSION["contestName"] = $row->contestName;
    $_SESSION["schoolID"] = $schoolID;
    $_SESSION["contestID"] = $contestID;
    $_SESSION["contestFolder"] = $contestFolder;
-   $_SESSION["contestStatus"] = $contestStatus;
+   $_SESSION["contestOpen"] = $contestOpen;
+   $_SESSION["contestShowSolutions"] = $contestShowSolutions;
+   $_SESSION["contestVisibility"] = $contestVisibility;
    $_SESSION["nbMinutes"] = $nbMinutes;
    $_SESSION["bonusScore"] = $bonusScore;
    $_SESSION["allowTeamsOfTwo"] = $allowTeamsOfTwo;
    $_SESSION["newInterface"] = $newInterface;
    $_SESSION["fullFeedback"] = $fullFeedback;
    $_SESSION["nextQuestionAuto"] = $nextQuestionAuto;
+   $_SESSION["nbUnlockedTasksInitial"] = $nbUnlockedTasksInitial;
+   $_SESSION["subsetsSize"] = $subsetsSize;
    $_SESSION["groupClosed"] = (($nbMinutesElapsed > 60) && (!$isPublic));
    // We don't want $_SESSION['userCode'] in the session at this point
    if (isset($_SESSION["userCode"])) {
@@ -96,8 +101,11 @@ function openGroup($db, $password, $getTeams) {
       "success" => true,
       "groupID" => $groupID,
       "contestID" => $contestID, 
+      "contestName" => $row->contestName, 
       "contestFolder" => $contestFolder, 
-      "contestStatus" => $contestStatus, 
+      "contestOpen" => $contestOpen,
+      "contestShowSolutions" => $contestShowSolutions,
+      "contestVisibility" => $contestVisibility,
       "name" => $name,
       "teams" => $teams,
       "nbMinutes" => $nbMinutes,
@@ -105,8 +113,15 @@ function openGroup($db, $password, $getTeams) {
       "allowTeamsOfTwo" => $allowTeamsOfTwo,
       "newInterface" => $newInterface,
       "fullFeedback" => $fullFeedback,
+      "nbUnlockedTasksInitial" => $nbUnlockedTasksInitial,
+      "subsetsSize" => $subsetsSize,
       'bRecovered' => $row->bRecovered,
       "nbMinutesElapsed" => $nbMinutesElapsed,
+      "askEmail" => !!intval($row->askEmail),
+      "askZip" => !!intval($row->askZip),
+      "askGenre" => !!intval($row->askGenre),
+      "askGrade" => !!intval($row->askGrade),
+      "askStudentId" => !!intval($row->askStudentId),
       "isPublic" => $isPublic));
    return true;
 }
@@ -199,12 +214,18 @@ function createTeam($db, $contestants) {
       if (!isset($contestant["grade"])) {
          $contestant["grade"] = -2;
       }
+      if (!isset($contestant["genre"])) {
+         $contestant["genre"] = 0;
+      }
+      if (!isset($contestant["studentId"])) {
+         $contestant["studentId"] = "";
+      }
       list($contestant["firstName"], $contestant["lastName"], $saniValid, $trash) = 
          DataSanitizer::formatUserNames($contestant["firstName"], $contestant["lastName"]);
       $stmt = $db->prepare("
-         INSERT INTO `contestant` (`ID`, `lastName`, `firstName`, `genre`, `grade`, `teamID`, `cached_schoolID`, `saniValid`) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-      $stmt->execute(array(getRandomID(), $contestant["lastName"], $contestant["firstName"], $contestant["genre"], $contestant["grade"], $teamID, $_SESSION["schoolID"], $saniValid));
+         INSERT INTO `contestant` (`ID`, `lastName`, `firstName`, `genre`, `grade`, `studentId`, `teamID`, `cached_schoolID`, `saniValid`, `email`, `zipCode`)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+      $stmt->execute(array(getRandomID(), $contestant["lastName"], $contestant["firstName"], $contestant["genre"], $contestant["grade"], $contestant["studentId"], $teamID, $_SESSION["schoolID"], $saniValid, $contestant["email"], $contestant["zipCode"]));
    }
    echo json_encode((object)array("success" => true, "teamID" => $teamID, "password" => $password));
 }
@@ -225,8 +246,7 @@ function loadContestData($db) {
          error_log('DynamoDB error updating team for teamID: '.$teamID);
       }
    }
-
-   $questionsData = getQuestions($db, $_SESSION["contestID"]);
+   $questionsData = getQuestions($db, $_SESSION["contestID"], $_SESSION["subsetsSize"], $teamID);
    //$stmt = $db->prepare("SELECT `questionID`, `answer` FROM `team_question` WHERE `teamID` = ?");
    //$stmt->execute(array($teamID));
    try {
@@ -281,9 +301,14 @@ function loadSession() {
       "allowTeamsOfTwo" => $_SESSION["allowTeamsOfTwo"],
       "newInterface" => $_SESSION["newInterface"],
       "fullFeedback" => $_SESSION["fullFeedback"],
+      "nbUnlockedTasksInitial" => $_SESSION["nbUnlockedTasksInitial"],
+      "subsetsSize" => $_SESSION["subsetsSize"],
       "contestID" => $_SESSION["contestID"],
       "contestFolder" => $_SESSION["contestFolder"],
-      "contestStatus" => $_SESSION["contestStatus"],
+      "contestName" => $_SESSION["contestName"],
+      "contestOpen" => $_SESSION["contestOpen"],
+      "contestShowSolutions" => $_SESSION["contestShowSolutions"],
+      "contestVisibility" => $_SESSION["contestVisibility"],
       "SID" => session_id()));
    return;
 }
